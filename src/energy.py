@@ -1,24 +1,22 @@
 """
-KHEO Version 1.0.1
+KHEO Version 1.0.2
 energy.py
 """
 
-# Annual house electricity usage (kWh)
-ANNUAL_USAGE = 16686
+from pathlib import Path
+import csv
 
-# Solar system
+# ---------------------------------------------------------------------
+# Solar system assumptions
+# ---------------------------------------------------------------------
+
 ARRAY_SIZE_KW = 10.81
 
-# Editable engineering assumptions
-SYSTEM_EFFICIENCY = 0.86      # 14% total system losses
+SYSTEM_EFFICIENCY = 0.86      # 14% losses
 SHADING_FACTOR = 0.92         # 8% shading loss
 
-# Monthly production factors
-# Sum = 1.000
+# Monthly solar production factors (sum = 1.0)
 MONTHLY_FACTORS = [
-    ("Jan", 0.124),
-    ("Feb", 0.112),
-    ("Mar", 0.098),
     ("Apr", 0.078),
     ("May", 0.053),
     ("Jun", 0.039),
@@ -28,32 +26,37 @@ MONTHLY_FACTORS = [
     ("Oct", 0.101),
     ("Nov", 0.105),
     ("Dec", 0.098),
+    ("Jan", 0.124),
+    ("Feb", 0.112),
+    ("Mar", 0.098),
 ]
 
-# Monthly house usage profile
-# Sum = 1.000
-USAGE_FACTORS = [
-    0.095,
-    0.085,
-    0.080,
-    0.075,
-    0.080,
-    0.090,
-    0.100,
-    0.095,
-    0.080,
-    0.075,
-    0.070,
-    0.075,
-]
+DATA_FILE = Path("data") / "monthly_usage.csv"
+
+
+def load_usage():
+
+    usage = []
+
+    with open(DATA_FILE, newline="", encoding="utf-8-sig") as f:
+
+        reader = csv.DictReader(f)
+
+        for row in reader:
+
+            usage.append(
+                {
+                    "month": row["Month"],
+                    "usage": int(row["Usage_kWh"]),
+                }
+            )
+
+    return usage
 
 
 def estimated_annual_solar():
     """
-    First-pass engineering estimate.
-
-    Assumes approximately 1,300 kWh per installed kW per year
-    for a well-oriented Christchurch residential system.
+    Initial engineering estimate for Christchurch.
     """
 
     return round(
@@ -68,27 +71,25 @@ def monthly_energy_balance():
 
     annual_solar = estimated_annual_solar()
 
+    usage = load_usage()
+
     results = []
 
-    total_usage = 0
-    total_solar = 0
+    for solar_info, usage_info in zip(MONTHLY_FACTORS, usage):
 
-    for (month, solar_factor), usage_factor in zip(
-        MONTHLY_FACTORS,
-        USAGE_FACTORS,
-    ):
+        month = solar_info[0]
+        solar_factor = solar_info[1]
 
-        usage = round(ANNUAL_USAGE * usage_factor)
         solar = round(annual_solar * solar_factor)
-        balance = solar - usage
 
-        total_usage += usage
-        total_solar += solar
+        demand = usage_info["usage"]
+
+        balance = solar - demand
 
         results.append(
             {
                 "month": month,
-                "usage": usage,
+                "usage": demand,
                 "solar": solar,
                 "balance": balance,
             }
