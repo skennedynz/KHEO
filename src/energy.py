@@ -92,13 +92,13 @@ MONTHLY_FACTORS = [
 
 def estimated_annual_solar():
 
-    p = load_parameters()
+    parameters = load_parameters()
 
     return round(
-        p["Array_Size_kW"]
+        parameters["Array_Size_kW"]
         * 1300
-        * p["System_Efficiency"]
-        * p["Shading_Factor"]
+        * parameters["System_Efficiency"]
+        * parameters["Shading_Factor"]
     )
 
 
@@ -119,7 +119,7 @@ def monthly_energy_balance():
 
     usage = load_usage()
 
-resu    lts = []
+    results = []
 
     for (month, factor), item in zip(MONTHLY_FACTORS, usage):
 
@@ -128,7 +128,7 @@ resu    lts = []
         demand = item["usage"]
 
         direct_use = round(
-            solar * load_parameters()["Direct_Solar_Use"]
+            solar * parameters["Direct_Solar_Use"]
         )
 
         export = max(0, solar - direct_use)
