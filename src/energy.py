@@ -1,5 +1,5 @@
 """
-KHEO Version 1.0.2
+KHEO Version 1.0.3
 energy.py
 """
 
@@ -7,38 +7,50 @@ from pathlib import Path
 import csv
 
 # ---------------------------------------------------------------------
-# Solar system assumptions
+# Data files
 # ---------------------------------------------------------------------
 
-ARRAY_SIZE_KW = 10.81
+DATA_FOLDER = Path("data")
 
-SYSTEM_EFFICIENCY = 0.86      # 14% losses
-SHADING_FACTOR = 0.92         # 8% shading loss
+USAGE_FILE = DATA_FOLDER / "monthly_usage.csv"
+PARAMETER_FILE = DATA_FOLDER / "system_parameters.csv"
 
-# Monthly solar production factors (sum = 1.0)
-MONTHLY_FACTORS = [
-    ("Apr", 0.078),
-    ("May", 0.053),
-    ("Jun", 0.039),
-    ("Jul", 0.045),
-    ("Aug", 0.063),
-    ("Sep", 0.084),
-    ("Oct", 0.101),
-    ("Nov", 0.105),
-    ("Dec", 0.098),
-    ("Jan", 0.124),
-    ("Feb", 0.112),
-    ("Mar", 0.098),
-]
 
-DATA_FILE = Path("data") / "monthly_usage.csv"
+# ---------------------------------------------------------------------
+# Load engineering parameters
+# ---------------------------------------------------------------------
 
+def load_parameters():
+
+    parameters = {}
+
+    with open(PARAMETER_FILE, newline="", encoding="utf-8-sig") as f:
+
+        reader = csv.DictReader(f)
+
+        for row in reader:
+
+            value = row["Value"]
+
+            try:
+                value = float(value)
+            except ValueError:
+                pass
+
+            parameters[row["Parameter"]] = value
+
+    return parameters
+
+
+# ---------------------------------------------------------------------
+# Load measured monthly usage
+# ---------------------------------------------------------------------
 
 def load_usage():
 
     usage = []
 
-    with open(DATA_FILE, newline="", encoding="utf-8-sig") as f:
+    with open(USAGE_FILE, newline="", encoding="utf-8-sig") as f:
 
         reader = csv.DictReader(f)
 
@@ -54,18 +66,45 @@ def load_usage():
     return usage
 
 
+# ---------------------------------------------------------------------
+# Monthly solar distribution
+# ---------------------------------------------------------------------
+
+MONTHLY_FACTORS = [
+    ("Apr", 0.078),
+    ("May", 0.053),
+    ("Jun", 0.039),
+    ("Jul", 0.045),
+    ("Aug", 0.063),
+    ("Sep", 0.084),
+    ("Oct", 0.101),
+    ("Nov", 0.105),
+    ("Dec", 0.098),
+    ("Jan", 0.124),
+    ("Feb", 0.112),
+    ("Mar", 0.098),
+]
+
+
+# ---------------------------------------------------------------------
+# Solar model
+# ---------------------------------------------------------------------
+
 def estimated_annual_solar():
-    """
-    Initial engineering estimate for Christchurch.
-    """
+
+    p = load_parameters()
 
     return round(
-        ARRAY_SIZE_KW
+        p["Array_Size_kW"]
         * 1300
-        * SYSTEM_EFFICIENCY
-        * SHADING_FACTOR
+        * p["System_Efficiency"]
+        * p["Shading_Factor"]
     )
 
+
+# ---------------------------------------------------------------------
+# Monthly energy balance
+# ---------------------------------------------------------------------
 
 def monthly_energy_balance():
 
@@ -75,14 +114,19 @@ def monthly_energy_balance():
 
     results = []
 
-    for solar_info, usage_info in zip(MONTHLY_FACTORS, usage):
+    for (month, factor), item in zip(MONTHLY_FACTORS, usage):
 
-        month = solar_info[0]
-        solar_factor = solar_info[1]
+        solar = round(annual_solar * factor)
 
-        solar = round(annual_solar * solar_factor)
+        demand = item["usage"]
 
-        demand = usage_info["usage"]
+        direct_use = round(
+            solar * load_parameters()["Direct_Solar_Use"]
+        )
+
+        export = max(0, solar - direct_use)
+
+        grid_import = max(0, demand - direct_use)
 
         balance = solar - demand
 
@@ -91,12 +135,19 @@ def monthly_energy_balance():
                 "month": month,
                 "usage": demand,
                 "solar": solar,
+                "direct_use": direct_use,
+                "grid_import": grid_import,
+                "grid_export": export,
                 "balance": balance,
             }
         )
 
     return results
 
+
+# ---------------------------------------------------------------------
+# Annual summary
+# ---------------------------------------------------------------------
 
 def annual_summary():
 
