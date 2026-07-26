@@ -1,83 +1,115 @@
 """
-KHEO Energy Model
-Version 1.0.0
+KHEO Version 1.0.1
+energy.py
 """
 
-MONTHS = [
-    "Jan", "Feb", "Mar", "Apr",
-    "May", "Jun", "Jul", "Aug",
-    "Sep", "Oct", "Nov", "Dec"
+# Annual house electricity usage (kWh)
+ANNUAL_USAGE = 16686
+
+# Solar system
+ARRAY_SIZE_KW = 10.81
+
+# Editable engineering assumptions
+SYSTEM_EFFICIENCY = 0.86      # 14% total system losses
+SHADING_FACTOR = 0.92         # 8% shading loss
+
+# Monthly production factors
+# Sum = 1.000
+MONTHLY_FACTORS = [
+    ("Jan", 0.124),
+    ("Feb", 0.112),
+    ("Mar", 0.098),
+    ("Apr", 0.078),
+    ("May", 0.053),
+    ("Jun", 0.039),
+    ("Jul", 0.045),
+    ("Aug", 0.063),
+    ("Sep", 0.084),
+    ("Oct", 0.101),
+    ("Nov", 0.105),
+    ("Dec", 0.098),
 ]
 
-# Steve's annual electricity usage (baseline year)
-MONTHLY_USAGE = {
-    "Jan": 664,
-    "Feb": 583,
-    "Mar": 632,
-    "Apr": 1005,
-    "May": 1564,
-    "Jun": 2413,
-    "Jul": 2358,
-    "Aug": 2488,
-    "Sep": 1026,
-    "Oct": 1333,
-    "Nov": 709,
-    "Dec": 635,
-}
+# Monthly house usage profile
+# Sum = 1.000
+USAGE_FACTORS = [
+    0.095,
+    0.085,
+    0.080,
+    0.075,
+    0.080,
+    0.090,
+    0.100,
+    0.095,
+    0.080,
+    0.075,
+    0.070,
+    0.075,
+]
 
-# Initial Christchurch estimate for a 10.81 kW system.
-# These values will later be replaced with a model based on
-# irradiance, roof orientation and system efficiency.
-MONTHLY_SOLAR = {
-    "Jan": 1450,
-    "Feb": 1220,
-    "Mar": 930,
-    "Apr": 650,
-    "May": 420,
-    "Jun": 310,
-    "Jul": 360,
-    "Aug": 560,
-    "Sep": 820,
-    "Oct": 1100,
-    "Nov": 1320,
-    "Dec": 1480,
-}
+
+def estimated_annual_solar():
+    """
+    First-pass engineering estimate.
+
+    Assumes approximately 1,300 kWh per installed kW per year
+    for a well-oriented Christchurch residential system.
+    """
+
+    return round(
+        ARRAY_SIZE_KW
+        * 1300
+        * SYSTEM_EFFICIENCY
+        * SHADING_FACTOR
+    )
 
 
 def monthly_energy_balance():
-    """
-    Returns a list of monthly energy results.
-    """
+
+    annual_solar = estimated_annual_solar()
 
     results = []
 
-    for month in MONTHS:
+    total_usage = 0
+    total_solar = 0
 
-        usage = MONTHLY_USAGE[month]
-        solar = MONTHLY_SOLAR[month]
+    for (month, solar_factor), usage_factor in zip(
+        MONTHLY_FACTORS,
+        USAGE_FACTORS,
+    ):
+
+        usage = round(ANNUAL_USAGE * usage_factor)
+        solar = round(annual_solar * solar_factor)
         balance = solar - usage
 
-        results.append({
-            "month": month,
-            "usage": usage,
-            "solar": solar,
-            "balance": balance,
-        })
+        total_usage += usage
+        total_solar += solar
+
+        results.append(
+            {
+                "month": month,
+                "usage": usage,
+                "solar": solar,
+                "balance": balance,
+            }
+        )
 
     return results
 
 
 def annual_summary():
-    """
-    Returns annual totals.
-    """
 
-    annual_usage = sum(MONTHLY_USAGE.values())
-    annual_solar = sum(MONTHLY_SOLAR.values())
+    monthly = monthly_energy_balance()
+
+    usage = sum(m["usage"] for m in monthly)
+    solar = sum(m["solar"] for m in monthly)
+    balance = solar - usage
+
+    coverage = solar / usage if usage else 0
 
     return {
-        "usage": annual_usage,
-        "solar": annual_solar,
-        "balance": annual_solar - annual_usage,
-        "coverage": annual_solar / annual_usage,
+        "usage": usage,
+        "solar": solar,
+        "balance": balance,
+        "coverage": coverage,
     }

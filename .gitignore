@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+
+# Excel temporary files
+~$*.xlsx
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Generated output
+output/*.xlsx
