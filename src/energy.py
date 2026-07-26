@@ -108,11 +108,18 @@ def estimated_annual_solar():
 
 def monthly_energy_balance():
 
-    annual_solar = estimated_annual_solar()
+    parameters = load_parameters()
+
+    annual_solar = round(
+        parameters["Array_Size_kW"]
+        * 1300
+        * parameters["System_Efficiency"]
+        * parameters["Shading_Factor"]
+    )
 
     usage = load_usage()
 
-    results = []
+resu    lts = []
 
     for (month, factor), item in zip(MONTHLY_FACTORS, usage):
 
