@@ -7,6 +7,8 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
+from openpyxl.utils import get_column_letter
+
 from src.styles import (
     title,
     header,
@@ -22,6 +24,25 @@ from src.energy import (
 OUTPUT_FOLDER = Path("output")
 OUTPUT_FILE = OUTPUT_FOLDER / "KHEO.xlsx"
 
+def autofit_columns(worksheet):
+    """
+    Automatically adjust the width of each column to fit its contents.
+    """
+
+    for column in worksheet.columns:
+
+        max_length = 0
+        column_letter = get_column_letter(column[0].column)
+
+        for cell in column:
+
+            try:
+                if cell.value is not None:
+                    max_length = max(max_length, len(str(cell.value)))
+            except Exception:
+                pass
+
+        worksheet.column_dimensions[column_letter].width = max_length + 2
 
 def build_workbook():
 
@@ -213,6 +234,9 @@ def build_workbook():
         "Month",
         "Usage (kWh)",
         "Solar (kWh)",
+        "Direct Use (kWh)",
+        "Grid Import (kWh)",
+        "Grid Export (kWh)",
         "Balance (kWh)",
     ]
 
@@ -233,9 +257,12 @@ def build_workbook():
         energy.cell(row=row, column=1).value = item["month"]
         energy.cell(row=row, column=2).value = item["usage"]
         energy.cell(row=row, column=3).value = item["solar"]
-        energy.cell(row=row, column=4).value = item["balance"]
+        energy.cell(row=row, column=4).value = item["direct_use"]
+        energy.cell(row=row, column=5).value = item["grid_import"]
+        energy.cell(row=row, column=6).value = item["grid_export"]
+        energy.cell(row=row, column=7).value = item["balance"]
 
-        for col in range(1, 5):
+        for col in range(1, 8):
             value(energy.cell(row=row, column=col))
 
         row += 1
@@ -245,9 +272,14 @@ def build_workbook():
 
     energy[f"B{row}"] = summary["usage"]
     energy[f"C{row}"] = summary["solar"]
+
+    energy[f"D{row}"] = sum(item["direct_use"] for item in monthly)
+    energy[f"E{row}"] = sum(item["grid_import"] for item in monthly)
+    energy[f"F{row}"] = sum(item["grid_export"] for item in monthly)
+
     energy[f"D{row}"] = summary["balance"]
 
-    for col in range(2, 5):
+    for col in range(2, 8):
         value(energy.cell(row=row, column=col))
 
     # --------------------------------------------------
@@ -396,6 +428,9 @@ def build_workbook():
     # SAVE WORKBOOK
     # --------------------------------------------------
 
+    for ws in worksheets:
+        autofit_columns(ws)
+    
     wb.save(OUTPUT_FILE)
 
     print(f"KHEO workbook created: {OUTPUT_FILE}")

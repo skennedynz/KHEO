@@ -1,5 +1,5 @@
 """
-KHEO Version 1.0.3
+KHEO Version 1.0.4
 energy.py
 """
 
@@ -14,7 +14,35 @@ DATA_FOLDER = Path("data")
 
 USAGE_FILE = DATA_FOLDER / "monthly_usage.csv"
 PARAMETER_FILE = DATA_FOLDER / "system_parameters.csv"
+SOLAR_FILE = DATA_FOLDER / "monthly_solar.csv"
 
+# ---------------------------------------------------------------------
+# Load monthly solar factors
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+# Load monthly solar resource
+# ---------------------------------------------------------------------
+
+def load_monthly_solar():
+
+    solar = []
+
+    with open(SOLAR_FILE, newline="", encoding="utf-8-sig") as f:
+
+        reader = csv.DictReader(f)
+
+        for row in reader:
+
+            solar.append(
+                {
+                    "month": row["Month"],
+                    "days": int(row["Days"]),
+                    "psh": float(row["Peak_Sun_Hours"]),
+                }
+            )
+
+    return solar
 
 # ---------------------------------------------------------------------
 # Load engineering parameters
@@ -67,42 +95,6 @@ def load_usage():
 
 
 # ---------------------------------------------------------------------
-# Monthly solar distribution
-# ---------------------------------------------------------------------
-
-MONTHLY_FACTORS = [
-    ("Apr", 0.078),
-    ("May", 0.053),
-    ("Jun", 0.039),
-    ("Jul", 0.045),
-    ("Aug", 0.063),
-    ("Sep", 0.084),
-    ("Oct", 0.101),
-    ("Nov", 0.105),
-    ("Dec", 0.098),
-    ("Jan", 0.124),
-    ("Feb", 0.112),
-    ("Mar", 0.098),
-]
-
-
-# ---------------------------------------------------------------------
-# Solar model
-# ---------------------------------------------------------------------
-
-def estimated_annual_solar():
-
-    parameters = load_parameters()
-
-    return round(
-        parameters["Array_Size_kW"]
-        * 1300
-        * parameters["System_Efficiency"]
-        * parameters["Shading_Factor"]
-    )
-
-
-# ---------------------------------------------------------------------
 # Monthly energy balance
 # ---------------------------------------------------------------------
 
@@ -110,20 +102,37 @@ def monthly_energy_balance():
 
     parameters = load_parameters()
 
-    annual_solar = round(
-        parameters["Array_Size_kW"]
-        * 1300
-        * parameters["System_Efficiency"]
-        * parameters["Shading_Factor"]
+    # Calculate total array size from panel configuration
+    ne_array_kw = (
+        parameters["NE_Panels"]
+        * parameters["Panel_Rating_kW"]
     )
 
+    nw_array_kw = (
+        parameters["NW_Panels"]
+        * parameters["Panel_Rating_kW"]
+    )
+
+    total_array_kw = ne_array_kw + nw_array_kw
+
     usage = load_usage()
+    solar_resource = load_monthly_solar()
 
     results = []
 
-    for (month, factor), item in zip(MONTHLY_FACTORS, usage):
+    for solar_month, item in zip(solar_resource, usage):
 
-        solar = round(annual_solar * factor)
+        month = solar_month["month"]
+        days = solar_month["days"]
+        psh = solar_month["psh"]
+
+        solar = round(
+            total_array_kw
+            * psh
+            * days
+            * parameters["System_Efficiency"]
+            * parameters["Shading_Factor"]
+        )
 
         demand = item["usage"]
 
@@ -131,7 +140,7 @@ def monthly_energy_balance():
             solar * parameters["Direct_Solar_Use"]
         )
 
-        export = max(0, solar - direct_use)
+        grid_export = max(0, solar - direct_use)
 
         grid_import = max(0, demand - direct_use)
 
@@ -144,7 +153,7 @@ def monthly_energy_balance():
                 "solar": solar,
                 "direct_use": direct_use,
                 "grid_import": grid_import,
-                "grid_export": export,
+                "grid_export": grid_export,
                 "balance": balance,
             }
         )
