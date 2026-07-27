@@ -3,6 +3,7 @@ KHEO Version 1.0.4
 energy.py
 """
 
+from src.solar import total_array_capacity
 from pathlib import Path
 import csv
 
@@ -127,15 +128,7 @@ def monthly_energy_balance():
     parameters = load_parameters()
 
     # Calculate total array size from roof geometry
-    roofs = load_roof_geometry()
-
-    total_array_kw = 0.0
-
-    for roof in roofs:
-        total_array_kw += (
-            roof["panels"]
-            * roof["panel_rating"]
-        )
+    total_array_kw = total_array_capacity()
 
     usage = load_usage()
     solar_resource = load_monthly_solar()

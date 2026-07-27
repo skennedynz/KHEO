@@ -15,6 +15,10 @@ from src.styles import (
     value,
     setup_sheet,
 )
+from src.solar import (
+    load_roof_geometry,
+    total_array_capacity,
+)
 
 from src.energy import (
     annual_summary,
@@ -182,7 +186,7 @@ def build_workbook():
         value(home[f"D{row}"])
         value(home[f"E{row}"])
 
-        # --------------------------------------------------
+    # --------------------------------------------------
     # INPUTS
     # --------------------------------------------------
 
@@ -277,7 +281,7 @@ def build_workbook():
     energy[f"E{row}"] = sum(item["grid_import"] for item in monthly)
     energy[f"F{row}"] = sum(item["grid_export"] for item in monthly)
 
-    energy[f"D{row}"] = summary["balance"]
+    energy[f"G{row}"] = summary["balance"]
 
     for col in range(2, 8):
         value(energy.cell(row=row, column=col))
@@ -286,6 +290,59 @@ def build_workbook():
     # SOLAR
     # --------------------------------------------------
 
+    solar["A1"] = "Solar PV System"
+    title(solar["A1"])
+
+    headings = [
+        "Roof",
+        "Panels",
+        "Panel Rating (kW)",
+        "Array Size (kW)",
+        "Tilt (°)",
+        "Azimuth (°)",
+    ]
+
+    for col, text in enumerate(headings, start=1):
+
+        cell = solar.cell(row=3, column=col)
+        cell.value = text
+        header(cell)
+
+    roofs = load_roof_geometry()
+
+    row = 4
+
+    total_panels = 0
+    total_kw = 0.0
+
+    for roof in roofs:
+
+        array_kw = roof["panels"] * roof["panel_rating"]
+
+        solar.cell(row=row, column=1).value = roof["roof"]
+        solar.cell(row=row, column=2).value = roof["panels"]
+        solar.cell(row=row, column=3).value = roof["panel_rating"]
+        solar.cell(row=row, column=4).value = array_kw
+        solar.cell(row=row, column=5).value = roof["tilt"]
+        solar.cell(row=row, column=6).value = roof["azimuth"]
+
+        for col in range(1, 7):
+            value(solar.cell(row=row, column=col))
+
+        total_panels += roof["panels"]
+        total_kw += array_kw
+
+        row += 1
+
+    solar.cell(row=row, column=1).value = "TOTAL"
+    header(solar.cell(row=row, column=1))
+
+    solar.cell(row=row, column=2).value = total_panels
+    solar.cell(row=row, column=4).value = total_kw
+
+    value(solar.cell(row=row, column=2))
+    value(solar.cell(row=row, column=4))
+    
     solar["A1"] = "Solar Model"
     title(solar["A1"])
 
