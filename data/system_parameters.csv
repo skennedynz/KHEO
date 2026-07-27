@@ -1,7 +1,4 @@
 Parameter,Value
-NE_Panels,14
-NW_Panels,9
-Panel_Rating_kW,0.47
 System_Efficiency,0.86
 Shading_Factor,0.92
 Direct_Solar_Use,0.35

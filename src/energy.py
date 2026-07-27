@@ -15,10 +15,8 @@ DATA_FOLDER = Path("data")
 USAGE_FILE = DATA_FOLDER / "monthly_usage.csv"
 PARAMETER_FILE = DATA_FOLDER / "system_parameters.csv"
 SOLAR_FILE = DATA_FOLDER / "monthly_solar.csv"
+ROOF_FILE = DATA_FOLDER / "roof_geometry.csv"
 
-# ---------------------------------------------------------------------
-# Load monthly solar factors
-# ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
 # Load monthly solar resource
@@ -71,6 +69,32 @@ def load_parameters():
 
 
 # ---------------------------------------------------------------------
+# Load roof geometry
+# ---------------------------------------------------------------------
+
+def load_roof_geometry():
+
+    roofs = []
+
+    with open(ROOF_FILE, newline="", encoding="utf-8-sig") as f:
+
+        reader = csv.DictReader(f)
+
+        for row in reader:
+
+            roofs.append(
+                {
+                    "roof": row["Roof"],
+                    "panels": int(row["Panels"]),
+                    "panel_rating": float(row["Panel_Rating_kW"]),
+                    "tilt": float(row["Tilt_deg"]),
+                    "azimuth": float(row["Azimuth_deg"]),
+                }
+            )
+
+    return roofs
+
+# ---------------------------------------------------------------------
 # Load measured monthly usage
 # ---------------------------------------------------------------------
 
@@ -102,18 +126,16 @@ def monthly_energy_balance():
 
     parameters = load_parameters()
 
-    # Calculate total array size from panel configuration
-    ne_array_kw = (
-        parameters["NE_Panels"]
-        * parameters["Panel_Rating_kW"]
-    )
+    # Calculate total array size from roof geometry
+    roofs = load_roof_geometry()
 
-    nw_array_kw = (
-        parameters["NW_Panels"]
-        * parameters["Panel_Rating_kW"]
-    )
+    total_array_kw = 0.0
 
-    total_array_kw = ne_array_kw + nw_array_kw
+    for roof in roofs:
+        total_array_kw += (
+            roof["panels"]
+            * roof["panel_rating"]
+        )
 
     usage = load_usage()
     solar_resource = load_monthly_solar()
