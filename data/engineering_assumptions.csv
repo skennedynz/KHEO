@@ -1,0 +1,5 @@
+Parameter,Value,Units,Source,Notes
+Performance_Ratio,0.86,-,Engineering estimate,Overall system performance ratio
+Shading_Factor,0.92,-,Site estimate,Initial estimate before commissioning
+Direct_Solar_Use,0.35,-,Engineering estimate,Fraction of PV consumed immediately
+Annual_Specific_Yield,1300,kWh/kWp/year,Placeholder,To be replaced by PVGIS

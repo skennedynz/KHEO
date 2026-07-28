@@ -9,7 +9,7 @@ import csv
 DATA_FOLDER = Path("data")
 
 ROOF_FILE = DATA_FOLDER / "roof_geometry.csv"
-SOLAR_FILE = DATA_FOLDER / "monthly_solar.csv"
+SOLAR_FILE = DATA_FOLDER / "solar_resource.csv"
 
 
 def load_roof_geometry():
@@ -49,7 +49,7 @@ def load_solar_resource():
                 {
                     "month": row["Month"],
                     "days": int(row["Days"]),
-                    "psh": float(row["Peak_Sun_Hours"]),
+                    "psh": float(row["PSH"]),
                 }
             )
 
@@ -67,3 +67,19 @@ def total_array_capacity():
         )
 
     return total_kw
+
+def load_model_parameters():
+
+    parameters = {}
+
+    MODEL_FILE = DATA_FOLDER / "model_parameters.csv"
+
+    with open(MODEL_FILE, newline="", encoding="utf-8-sig") as f:
+
+        reader = csv.DictReader(f)
+
+        for row in reader:
+
+            parameters[row["Parameter"]] = float(row["Value"])
+
+    return parameters

@@ -15,7 +15,7 @@ DATA_FOLDER = Path("data")
 
 USAGE_FILE = DATA_FOLDER / "monthly_usage.csv"
 PARAMETER_FILE = DATA_FOLDER / "system_parameters.csv"
-SOLAR_FILE = DATA_FOLDER / "monthly_solar.csv"
+SOLAR_FILE = DATA_FOLDER / "solar_resource.csv"
 ROOF_FILE = DATA_FOLDER / "roof_geometry.csv"
 
 
@@ -37,7 +37,7 @@ def load_monthly_solar():
                 {
                     "month": row["Month"],
                     "days": int(row["Days"]),
-                    "psh": float(row["Peak_Sun_Hours"]),
+                    "psh": float(row["PSH"]),
                 }
             )
 

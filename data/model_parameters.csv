@@ -1,0 +1,4 @@
+Parameter,Value,Units,Description
+Performance_Ratio,0.86,-,Overall PV system performance
+Direct_Solar_Use,0.35,-,Fraction of PV used immediately by the house
+Default_Shading_Factor,0.92,-,Initial shading estimate
